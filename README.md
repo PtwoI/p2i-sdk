@@ -1,15 +1,20 @@
 # p2i-sdk
 
-Typed, agent-neutral client for P2I's local API and structured tools.
+Typed Python client for the local P2I HTTP/JSON API. This repository contains
+no tracing implementation and no AI provider integration.
 
-## Boundary
+```python
+from p2i_sdk import Client
 
-Client requests/responses for model inspection, actions, revisions, skills and evaluation. It must not duplicate tracing, builders, validation or registry logic from [p2i-core](https://github.com/PtwoI/p2i-core). Planned import: `p2i_sdk`; the existing `p2i` import stays with core.
+client = Client()  # 127.0.0.1:8000
+ir = client.model_ir()
+state = client.harness()
+preview = client.command("preview", {"type": "set_parameter", "target": "...", "parameter": "p", "value": 0.2})
+```
 
-## Migration status
+Install `p2i-core`, then `python -m pip install -e .`. `Client.tool(name,
+arguments)` uses P2I's provider-neutral structured tool protocol. Network
+requests go only to the configured P2I origin; the default is loopback. For
+in-process model editing, use `p2i.Harness` directly.
 
-**Repository initialized; no SDK package is released.** Typed models and tool contracts currently live in [PtwoI/p2i](https://github.com/PtwoI/p2i). Continue using that working project until a versioned API is extracted and tested.
-
-[p2i-cli](https://github.com/PtwoI/p2i-cli) and [p2i-ai-plugin](https://github.com/PtwoI/p2i-ai-plugin) may depend on this SDK; core must not.
-
-MIT licensed.
+Run the SDK tests with `python -m unittest discover -s tests -v`.
