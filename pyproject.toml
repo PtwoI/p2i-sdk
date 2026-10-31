@@ -4,12 +4,12 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "p2i-sdk"
-version = "0.4.0"
+version = "0.4.1"
 description = "Typed local API client for the P2I model explorer"
 readme = "README.md"
 license = {file = "LICENSE"}
 requires-python = ">=3.11"
-dependencies = ["p2i-core>=0.4,<0.5"]
+dependencies = ["p2i-core>=0.4.1,<0.5"]
 
 [project.urls]
 Repository = "https://github.com/PtwoI/p2i-sdk"
