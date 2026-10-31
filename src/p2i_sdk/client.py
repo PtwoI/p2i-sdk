@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from pathlib import Path
 from typing import TYPE_CHECKING, Any, Mapping
 from urllib.error import HTTPError, URLError
 from urllib.parse import quote, urlsplit
@@ -35,17 +36,18 @@ class Client:
         self.base_url = base_url.rstrip("/")
         self.timeout = timeout
 
-    def _request(self, path: str, body: Mapping[str, Any] | None = None) -> Any:
-        payload = None if body is None else json.dumps(body, allow_nan=False).encode("utf-8")
+    def _request(self, path: str, body: Mapping[str, Any] | bytes | None = None, *, raw: bool = False) -> Any:
+        binary = isinstance(body, bytes)
+        payload = body if binary else None if body is None else json.dumps(body, allow_nan=False).encode("utf-8")
         request = Request(
             self.base_url + path,
             data=payload,
-            headers={"Accept": "application/json", **({"Content-Type": "application/json"} if payload is not None else {})},
+            headers={"Accept": "application/octet-stream" if raw else "application/json", **({"Content-Type": "application/octet-stream" if binary else "application/json"} if payload is not None else {})},
             method="POST" if payload is not None else "GET",
         )
         try:
             with urlopen(request, timeout=self.timeout) as response:
-                return json.load(response)
+                return response.read() if raw else json.load(response)
         except HTTPError as exc:
             raw = exc.read()
             try:
@@ -91,3 +93,17 @@ class Client:
         if not name:
             raise ValueError("tool name is required")
         return self._request("/api/tools", {"tool": name, "arguments": dict(arguments or {})})
+
+    def save_checkpoint(self, path: str | Path, *, include_inputs: bool = True,
+                        expected_revision: int | None = None) -> Path:
+        """Download structure, weights and optional examples from the live session."""
+        data = self._request("/api/checkpoint/export", {
+            "include_inputs": include_inputs, "expected_revision": expected_revision,
+        }, raw=True)
+        destination = Path(path)
+        destination.write_bytes(data)
+        return destination
+
+    def open_checkpoint(self, path: str | Path) -> dict[str, Any]:
+        """Replace the live session only after the server can restore and trace it."""
+        return self._request("/api/checkpoint/import", Path(path).read_bytes())

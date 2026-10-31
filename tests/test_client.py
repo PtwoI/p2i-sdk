@@ -1,6 +1,8 @@
 import io
 import json
 import unittest
+import tempfile
+from pathlib import Path
 from unittest.mock import patch
 from urllib.error import HTTPError
 
@@ -46,6 +48,19 @@ class ClientTests(unittest.TestCase):
             Client("http://127.0.0.1:8000/other")
         with self.assertRaises(ValueError):
             Client().command("run_arbitrary_code")
+
+    def test_checkpoint_download_and_upload_use_binary_transport(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / 'model.p2i'
+            with patch('p2i_sdk.client.urlopen', return_value=Response(b'checkpoint-bytes')) as call:
+                self.assertEqual(Client().save_checkpoint(path, include_inputs=False, expected_revision=3), path)
+                self.assertEqual(path.read_bytes(), b'checkpoint-bytes')
+                self.assertEqual(json.loads(call.call_args.args[0].data),
+                                 {'include_inputs': False, 'expected_revision': 3})
+            with patch('p2i_sdk.client.urlopen', return_value=Response(b'{"result":{"success":true}}')) as call:
+                self.assertTrue(Client().open_checkpoint(path)['result']['success'])
+                self.assertEqual(call.call_args.args[0].data, b'checkpoint-bytes')
+                self.assertEqual(call.call_args.args[0].get_header('Content-type'), 'application/octet-stream')
 
 
 if __name__ == "__main__":
