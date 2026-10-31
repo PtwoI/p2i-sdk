@@ -85,7 +85,7 @@ class Client:
         return self._request("/api/skills" + suffix)
 
     def command(self, name: str, body: Mapping[str, Any] | None = None) -> dict[str, Any]:
-        if name not in ("preview", "apply", "validate", "undo", "redo", "retrace"):
+        if name not in ("plan", "preview", "apply", "validate", "undo", "redo", "retrace"):
             raise ValueError("Unknown harness command")
         return self._request(f"/api/harness/{name}", body or {})
 
