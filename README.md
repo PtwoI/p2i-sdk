@@ -33,3 +33,10 @@ trainable PyTorch model. Browser reopening requires saved inputs; failed
 imports leave the live session intact. Custom models use the active server's
 original template, or can be restored in Python with
 `p2i.Harness.load(path, model=YourModel(...))`.
+
+## Suggest connected dimensions
+
+`client.command("plan", {"target": "layers.0", "parameter": "out_features",
+"value": 24, "expected_revision": 0})` returns a proposed atomic batch and
+explanations. Pass `result["action"]` to `preview`, then `apply`. Planning does
+not commit changes; unknown connections remain explicit edits.

@@ -33,6 +33,12 @@ class ClientTests(unittest.TestCase):
             self.assertEqual(request.get_method(), "POST")
             self.assertEqual(json.loads(request.data)["value"], 0.2)
 
+    def test_dimension_plan_uses_the_same_revision_bound_api(self):
+        with patch("p2i_sdk.client.urlopen", return_value=Response(b'{"result":{"success":true}}')) as call:
+            Client().command("plan", {"target": "layers.0", "parameter": "out_features", "value": 24, "expected_revision": 3})
+            self.assertTrue(call.call_args.args[0].full_url.endswith("/api/harness/plan"))
+            self.assertEqual(json.loads(call.call_args.args[0].data)["expected_revision"], 3)
+
     def test_http_error_is_structured(self):
         error = HTTPError("http://127.0.0.1:8000/api/model", 409, "Conflict", None, io.BytesIO(b'{"detail":"no Harness"}'))
         with patch("p2i_sdk.client.urlopen", side_effect=error):
