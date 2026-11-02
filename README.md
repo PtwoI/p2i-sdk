@@ -40,3 +40,10 @@ original template, or can be restored in Python with
 "value": 24, "expected_revision": 0})` returns a proposed atomic batch and
 explanations. Pass `result["action"]` to `preview`, then `apply`. Planning does
 not commit changes; unknown connections remain explicit edits.
+
+## Paged evidence (0.4.3)
+
+`client.model_manifest()` returns collection counts and a snapshot ID.
+`client.iter_evidence("operations", page_size=100)` streams bounded pages from
+that snapshot. A concurrent retrace raises `P2IAPIError(status=409)` rather than
+mixing observations; request a fresh iteration to restart. Page size is 1–500.

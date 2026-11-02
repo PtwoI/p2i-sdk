@@ -6,7 +6,7 @@ import json
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Mapping
 from urllib.error import HTTPError, URLError
-from urllib.parse import quote, urlsplit
+from urllib.parse import quote, urlsplit, urlencode
 from urllib.request import Request, urlopen
 
 if TYPE_CHECKING:
@@ -60,6 +60,28 @@ class Client:
 
     def model(self) -> dict[str, Any]:
         return self._request("/api/model")
+
+    def model_manifest(self) -> dict[str, Any]:
+        return self._request("/api/model/manifest")
+
+    def iter_evidence(self, kind: str, *, page_size: int = 100):
+        """Iterate a stable snapshot; concurrent retraces raise HTTP 409."""
+        if kind not in ("modules", "operations", "tensors", "module_edges", "data_edges", "calls"):
+            raise ValueError("Unknown evidence collection")
+        if type(page_size) is not int or not 1 <= page_size <= 500:
+            raise ValueError("page_size must be an integer from 1 to 500")
+        manifest = self.model_manifest()
+        offset = 0
+        while offset is not None:
+            query = urlencode({"offset": offset, "limit": page_size, "snapshot_id": manifest["snapshot"]})
+            page = self._request(f"/api/evidence/{kind}?{query}")
+            if page["snapshot"] != manifest["snapshot"]:
+                raise P2IAPIError("Model evidence changed during iteration", status=409)
+            yield from page["items"]
+            next_offset = page["next_offset"]
+            if next_offset is not None and next_offset <= offset:
+                raise P2IAPIError("Server returned a non-advancing evidence cursor")
+            offset = next_offset
 
     def model_ir(self) -> ModelIR:
         from p2i import ModelIR

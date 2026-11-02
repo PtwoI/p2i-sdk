@@ -71,3 +71,15 @@ class ClientTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class PagingTests(unittest.TestCase):
+    def test_iteration_pins_snapshot_and_advances_cursor(self):
+        replies = [b'{"snapshot":"s"}',
+                   b'{"snapshot":"s","items":[{"id":"a"}],"next_offset":1}',
+                   b'{"snapshot":"s","items":[{"id":"b"}],"next_offset":null}']
+        with patch('p2i_sdk.client.urlopen', side_effect=[Response(data) for data in replies]) as call:
+            self.assertEqual(list(Client().iter_evidence('operations', page_size=1)), [{'id':'a'}, {'id':'b'}])
+            self.assertIn('offset=1&limit=1&snapshot_id=s',call.call_args.args[0].full_url)
+        with self.assertRaises(ValueError):
+            list(Client().iter_evidence('operations', page_size=501))
